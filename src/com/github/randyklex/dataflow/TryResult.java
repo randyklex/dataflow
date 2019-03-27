@@ -1,5 +1,8 @@
 package com.github.randyklex.dataflow;
 
+/*
+ * Class used to be able to return a result and the status of fetching a result.
+ */
 public class TryResult<TResult> {
     private boolean success = false;
     private TResult result = null;

@@ -17,7 +17,7 @@ final class TargetRegistry<T> {
         this.targetInformation = new HashMap<>();
     }
 
-    void Add(ITargetBlock<T> target, DataflowLinkOptions linkOptions)
+    void add(ITargetBlock<T> target, DataflowLinkOptions linkOptions)
     {
         LinkedTargetInfo targetInfo;
 

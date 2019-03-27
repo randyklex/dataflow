@@ -4,7 +4,7 @@ package com.github.randyklex.dataflow;
 
 import java.util.function.Predicate;
 
-public abstract class DataFlowBlock implements IDataflowBlock {
+public abstract class DataflowBlock implements IDataflowBlock {
 
 
     public <TOutput> AutoCloseable LinkTo(ITargetBlock<TOutput> target)

@@ -6,25 +6,23 @@ import java.util.function.Consumer;
 
 public class TargetCore<TInput> {
 
-    static enum TargetCoreOptions
+    enum TargetCoreOptions
     {
         NONE, USES_ASYNC_COMPLETION, REPRESENTS_BLOCK_COMPLETION;
-
-        public static final EnumSet<TargetCoreOptions> ALL_OPTS = EnumSet.allOf(TargetCoreOptions.class);
     }
 
     private final ITargetBlock<TInput> owningTarget;
+    private final IProducerConsumerQueue<AbstractMap.SimpleEntry<TInput, Long>> messages;
     private final ExecutionDataflowBlockOptions dataflowBlockOptions;
     private final Consumer<AbstractMap.SimpleEntry<TInput, Long>> callAction;
     private final EnumSet<TargetCoreOptions> targetCoreOptions;
     private final BoundingStateWithPostponed<TInput> boundingState;
-
-    private final IProducerConsumerQueue<AbstractMap.SimpleEntry<TInput, Long>> messages;
+    private final IReorderingBuffer reorderingBuffer;
 
     private boolean decliningPermanently;
     private int numberOfOutstandingOperations;
     private int numberOfOutstandingServiceTasks;
-    // TODO: convert this to an optimized padded variable per the original source
+    // TODO: convert this variable below to an optimized padded variable per the original source
     private long nextAvailableInputMessageId;
     private boolean completionReserved;
     private int keepAliveBanCounter;
@@ -32,6 +30,7 @@ public class TargetCore<TInput> {
     // TODO: implement the reordering buffer.
     TargetCore(ITargetBlock<TInput> owningTarget,
                Consumer<AbstractMap.SimpleEntry<TInput, Long>> callAction,
+               IReorderingBuffer reorderingBuffer,
                ExecutionDataflowBlockOptions dataflowBlockOptions,
                EnumSet<TargetCoreOptions> targetCoreOptions)
     {
@@ -43,7 +42,7 @@ public class TargetCore<TInput> {
 
         this.owningTarget = owningTarget;
         this.callAction = callAction;
-        // TODO: implement reordering buffer.
+        this.reorderingBuffer = reorderingBuffer;
         this.dataflowBlockOptions = dataflowBlockOptions;
         this.targetCoreOptions = targetCoreOptions;
 
@@ -106,7 +105,7 @@ public class TargetCore<TInput> {
                                        ISourceBlock<TInput> source,
                                        boolean consumeToAccept)
     {
-        if (!messageHeader.getIsValid())
+        if (!messageHeader.isValid())
             throw new IllegalArgumentException("message header is invalid.");
 
         if (source == null && consumeToAccept)
@@ -154,11 +153,10 @@ public class TargetCore<TInput> {
         }
     }
 
-    /* TODO: implement this function.
     int getInputSize()
     {
-        return messages.getCountSafe(getIncomingLock());
-    } */
+        return messages.sizeSafe(getIncomingLock());
+    }
 
     private boolean getUsesAsyncCompletion()
     {
@@ -265,6 +263,7 @@ public class TargetCore<TInput> {
     {
         boolean countIncrementedExpectingToGetItem = false;
         long messageId = common.INVALID_REORDERING_ID;
+
         while (true)
         {
             AbstractMap.SimpleEntry<ISourceBlock<TInput>, DataflowMessageHeader> element;
@@ -278,6 +277,7 @@ public class TargetCore<TInput> {
                     return result;
 
                 TryResult<AbstractMap.SimpleEntry<ISourceBlock<TInput>, DataflowMessageHeader>> postponedResult = boundingState.postponedMessages.tryPoll();
+                element = postponedResult.getResult();
                 if (!boundingState.countIsLessThanBound() || !postponedResult.isSuccess())
                 {
                     if (countIncrementedExpectingToGetItem)
@@ -312,7 +312,11 @@ public class TargetCore<TInput> {
             }
         }
 
-        // TODO: implemment the reordering buffer
+        // we optimistically acquired a message ID for a message that, in the end, we never got.
+        // So we need to let the reordering buffer (if one exists) know that it should not
+        // expect an item with this ID. Otherwise it would stall forever.
+        if (reorderingBuffer != null && messageId != common.INVALID_REORDERING_ID)
+            reorderingBuffer.ignoreItem(messageId);
 
         if (countIncrementedExpectingToGetItem)
             changeBoundingCount(-1);
@@ -320,6 +324,9 @@ public class TargetCore<TInput> {
         return new TryResult<>(false, null);
     }
 
+    /*
+     * Get whether the target has had a cancellation requested or an exception has occurred.
+     */
     private boolean getCanceledOrFaulted()
     {
         // TODO: implement the cancellationToken stuff
@@ -354,7 +361,7 @@ public class TargetCore<TInput> {
 
         if (boundingState != null)
         {
-            // TODO: implement the releasAllPostponedMessages
+            // TODO: implement the releaseAllPostponedMessages
         }
 
         TryResult<AbstractMap.SimpleEntry<TInput, Long>> result = messages.tryPoll();
@@ -378,7 +385,8 @@ public class TargetCore<TInput> {
             synchronized (getIncomingLock())
             {
                 boundingState.CurrentCount += count;
-                // TODO: implement the process and complete statements here
+                processAsyncIfNecessary();
+                completeBlockIfPossible();
             }
         }
     }

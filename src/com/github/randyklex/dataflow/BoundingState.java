@@ -23,23 +23,14 @@ class BoundingStateWithPostponed<TInput> extends BoundingState
 {
     int outstandingTransfers;
 
-    final QueuedMap<ISourceBlock<TInput>, DataflowMessageHeader> postponedMessages = new QueuedMap<ISourceBlock<TInput>, DataflowMessageHeader>();
+    final QueuedMap<ISourceBlock<TInput>, DataflowMessageHeader> postponedMessages = new QueuedMap<>();
 
     BoundingStateWithPostponed(int boundedCapacity)
     {
         super(boundedCapacity);
     }
 
-    private int getPostponedMessagesCountForDebugger()
-    {
-        return postponedMessages.size();
-    }
+    // TODO: left out the debugger thing.
 }
 
-class BoundingStateWithPostponedAndTask<TInput> extends BoundingStateWithPostponed<TInput>
-{
-    BoundingStateWithPostponedAndTask(int boundedCapacity)
-    {
-        super(boundedCapacity);
-    }
-}
+// TODO: implement other bounding state classes here.

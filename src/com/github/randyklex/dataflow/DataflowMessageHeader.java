@@ -5,7 +5,7 @@ package com.github.randyklex.dataflow;
  */
 public class DataflowMessageHeader {
 
-    private static final long DEFAULT_VALUE = 0L;
+    static final long DEFAULT_VALUE = 0L;
 
     private final long id;
 
@@ -21,7 +21,7 @@ public class DataflowMessageHeader {
     *
     * @return true if the ID of the message is different from 0. False if the ID of the message is 0.
     */
-    public boolean getIsValid()
+    public boolean isValid()
     {
         return (id != DEFAULT_VALUE);
     }

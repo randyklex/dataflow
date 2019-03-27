@@ -11,12 +11,6 @@ public class MultiProducerMultiConsumerQueue<T> extends ConcurrentLinkedQueue<T>
     }
 
     @Override
-    public boolean offer(T item)
-    {
-        return super.offer(item);
-    }
-
-    @Override
     public boolean isEmpty()
     {
         return super.isEmpty();
@@ -37,5 +31,10 @@ public class MultiProducerMultiConsumerQueue<T> extends ConcurrentLinkedQueue<T>
             return new TryResult(true, rval);
         else
             return new TryResult<>(false, null);
+    }
+
+    public int sizeSafe(Object syncObj)
+    {
+        return super.size();
     }
 }

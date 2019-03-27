@@ -52,7 +52,7 @@ public class ExecutionDataflowBlockOptions extends DataflowBlockOptions {
     }
 
     /*
-     * Gets whether code using the dataflow block is constrainted to one producer at a time.
+     * Gets whether code using the dataflow block is constrained to one producer at a time.
      */
     public boolean getSingleProducerConstrained()
     {

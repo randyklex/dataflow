@@ -66,7 +66,7 @@ final class SpscTargetCore<TInput> {
         if (decliningPermanently)
             return DataflowMessageStatus.DecliningPermanently;
 
-        if (!messageHeader.getIsValid())
+        if (!messageHeader.isValid())
             throw new IllegalArgumentException("message is not valid.");
 
         if (consumeToAccept)

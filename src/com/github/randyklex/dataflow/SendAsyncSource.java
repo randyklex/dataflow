@@ -1,4 +1,4 @@
-package com.github.randyklex.dataflow;
+/*package com.github.randyklex.dataflow;
 
 import java.util.function.Consumer;
 
@@ -55,7 +55,7 @@ public class SendAsyncSource<TOutput> implements ISourceBlock<TOutput> {
     // TODO: refactor to have a "messageConsumed" return value too.
     public TOutput consumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<TOutput> target)
     {
-        if (!messageHeader.getIsValid())
+        if (!messageHeader.isValid())
             throw new IllegalArgumentException("messageHeader is invalid.");
 
         if (target == null)
@@ -78,3 +78,4 @@ public class SendAsyncSource<TOutput> implements ISourceBlock<TOutput> {
         return Default(TOutput);
     }
 }
+*/
