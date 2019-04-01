@@ -4,7 +4,7 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 
-public final class FilteredLinkPropagator<T> implements IPropagatorBlock<T, T> {
+public final class FilteredLinkPropagator<T> extends TargetBlockBase<T> implements IPropagatorBlock<T, T> {
     private final ISourceBlock<T> source;
     private final ITargetBlock<T> target;
     private final Predicate<T> userProvidedPredicate;
@@ -16,7 +16,7 @@ public final class FilteredLinkPropagator<T> implements IPropagatorBlock<T, T> {
         this.userProvidedPredicate = predicate;
     }
 
-    private boolean RunPredicate(T item)
+    private boolean runPredicate(T item)
     {
         return userProvidedPredicate.test(item);
     }
@@ -29,7 +29,7 @@ public final class FilteredLinkPropagator<T> implements IPropagatorBlock<T, T> {
         if (source == null)
             throw new IllegalArgumentException("source cannot be null.");
 
-        boolean passedFilter = RunPredicate(messageValue);
+        boolean passedFilter = runPredicate(messageValue);
 
         if (passedFilter)
             return this.target.offerMessage(messageHeader, messageValue, this, consumeToAccept);
@@ -64,6 +64,11 @@ public final class FilteredLinkPropagator<T> implements IPropagatorBlock<T, T> {
     }
 
     public AutoCloseable linkTo(ITargetBlock<T> targetBlock, DataflowLinkOptions linkOptions)
+    {
+        return this.linkTo(targetBlock, linkOptions, null);
+    }
+
+    public AutoCloseable linkTo(ITargetBlock<T> targetBlock, DataflowLinkOptions linkOptions, Predicate<T> predicate)
     {
         throw new NotImplementedException();
     }

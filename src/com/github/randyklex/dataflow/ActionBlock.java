@@ -109,7 +109,7 @@ public class ActionBlock<TInput> implements ITargetBlock<TInput> {
         // TODO: implement the rest of the Async stuff.
     }
 
-    // TODO: IMplement AsyncCompleteProcessMessageWithTask
+    // TODO: Implement AsyncCompleteProcessMessageWithTask
 
     public void complete()
     {

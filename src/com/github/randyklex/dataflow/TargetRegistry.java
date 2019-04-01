@@ -2,6 +2,7 @@ package com.github.randyklex.dataflow;
 
 import java.util.HashMap;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Predicate;
 
 final class TargetRegistry<T> {
 
@@ -161,7 +162,7 @@ final class TargetRegistry<T> {
 
     // TODO: left out the array of TargetsForDebugger
 
-    final class NopLinkPropagator implements IPropagatorBlock<T, T>, ISourceBlock<T>
+    final class NopLinkPropagator extends TargetBlockBase<T> implements IPropagatorBlock<T, T>, ISourceBlock<T>
     {
         private final ISourceBlock<T> owningSource;
         private final ITargetBlock<T> target;
@@ -211,7 +212,13 @@ final class TargetRegistry<T> {
             target.fault(exception);
         }
 
-        public AutoCloseable linkTo(ITargetBlock<T> target, DataflowLinkOptions linkOptions) {
+        public AutoCloseable linkTo(ITargetBlock<T> target, DataflowLinkOptions linkOptions)
+        {
+            return this.linkTo(target, linkOptions, null);
+        }
+
+        public AutoCloseable linkTo(ITargetBlock<T> target, DataflowLinkOptions linkOptions, Predicate<T> predicate)
+        {
             // TODO: find the java equivalent of NotSupportedException
             throw new IllegalStateException("cannot call this method.");
         }

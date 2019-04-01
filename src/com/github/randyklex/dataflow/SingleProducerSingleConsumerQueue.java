@@ -18,8 +18,8 @@ class SingleProducerSingleConsumerQueue<T> implements IProducerConsumerQueue<T> 
     {
         Segment segment = tail;
         T[] array = (T[])segment.array;
-
         int last = segment.state.last;
+
         int tail2 = (last + 1) & (array.length - 1);
         if (tail2 != segment.state.firstCopy)
         {
@@ -165,7 +165,7 @@ class SingleProducerSingleConsumerQueue<T> implements IProducerConsumerQueue<T> 
         Segment next;
         final T1[] array;
 
-        SegmentState state;
+        SegmentState state = new SegmentState();
 
         Segment(int size)
         {

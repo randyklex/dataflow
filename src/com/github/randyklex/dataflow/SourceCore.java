@@ -5,8 +5,6 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 final class SourceCore<TOutput> {
-
-
     private final TargetRegistry<TOutput> targetRegistry;
 
     // TODO: Implement the taskCompletionSource like in .NET. See also getOutgoingLock()
