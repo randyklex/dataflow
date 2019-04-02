@@ -35,6 +35,10 @@ final class QueuedMap<TKey, TValue> {
         }
     }
 
+    // TODO: Originally this was "TryPop" in the C# implememtation.
+    /*
+     * Try to poll the next element from the data structure.
+     */
     TryResult<AbstractMap.SimpleEntry<TKey, TValue>> tryPoll()
     {
         TryResult<AbstractMap.SimpleEntry<TKey, TValue>> result = queue.tryPoll();
@@ -99,6 +103,7 @@ final class QueuedMap<TKey, TValue> {
             return newIndex;
         }
 
+        // TODO: this was originall "TryDequeue" in the C# implementation.
         TryResult<T> tryPoll()
         {
             T item;

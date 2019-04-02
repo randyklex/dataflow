@@ -92,7 +92,7 @@ final class SpscTargetCore<TInput> {
     {
         if (activeConsumer.get() == null)
         {
-            // TODO: implement the common.getCreationOptionsForTask
+            // TODO: implement the Common.getCreationOptionsForTask
 
             CompletableFuture<Void> newConsumer = new CompletableFuture<>();
             if (activeConsumer.compareAndSet(null, newConsumer))

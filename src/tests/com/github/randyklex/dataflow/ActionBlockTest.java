@@ -29,7 +29,8 @@ public class ActionBlockTest {
         });
 
         block.post("World");
-        latch.await(2000, TimeUnit.MILLISECONDS);
+        boolean completed = latch.await(2000, TimeUnit.MILLISECONDS);
+        assertTrue(completed);
     }
 
     @Test
@@ -45,6 +46,7 @@ public class ActionBlockTest {
         }, options);
 
         block.post("World");
-        latch.await(2000, TimeUnit.MILLISECONDS);
+        boolean completed= latch.await(2000, TimeUnit.MILLISECONDS);
+        assertTrue(completed);
     }
 }

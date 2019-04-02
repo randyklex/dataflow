@@ -6,12 +6,12 @@ class SingleProducerSingleConsumerQueue<T> implements IProducerConsumerQueue<T> 
 
     private static final int INIT_SEGMENT_SIZE = 32; // must be a power of 2
     private static final int MAX_SEGMENT_SIZE = 0x1000000; // this could be made as a large as int32.maxValue / 2
-    private Segment<T> head;
-    private Segment<T> tail;
+    private Segment head;
+    private Segment tail;
 
     SingleProducerSingleConsumerQueue()
     {
-        head = tail = new Segment<>(INIT_SEGMENT_SIZE);
+        head = tail = new Segment(INIT_SEGMENT_SIZE);
     }
 
     public boolean add(T item)
@@ -64,7 +64,7 @@ class SingleProducerSingleConsumerQueue<T> implements IProducerConsumerQueue<T> 
     public TryResult<T> tryPoll()
     {
         Segment segment = head;
-        T[] array = (T[])segment.array;
+        Object[] array = segment.array;
         // TODO: verify this line below
         int first = segment.state.first; // local copy to avoid multiple volatile reads.
 
@@ -79,7 +79,7 @@ class SingleProducerSingleConsumerQueue<T> implements IProducerConsumerQueue<T> 
             return tryPollSlow(segment, array);
     }
 
-    private TryResult<T> tryPollSlow(Segment segment, T[] array)
+    private TryResult<T> tryPollSlow(Segment segment, Object[] array)
     {
         if (segment.state.last != segment.state.lastCopy)
         {
@@ -90,7 +90,7 @@ class SingleProducerSingleConsumerQueue<T> implements IProducerConsumerQueue<T> 
         if (segment.next != null && segment.state.first == segment.state.last)
         {
             segment = segment.next;
-            array = (T[])segment.array;
+            array = segment.array;
             head = segment;
         }
 
@@ -101,7 +101,7 @@ class SingleProducerSingleConsumerQueue<T> implements IProducerConsumerQueue<T> 
             return result;
         }
 
-        TryResult<T> result = new TryResult<>(true, array[first]);
+        TryResult<T> result = new TryResult(true, array[first]);
         array[first] = null;
         segment.state.first = (first + 1) & (segment.array.length - 1);
         segment.state.lastCopy = segment.state.last;
@@ -160,16 +160,16 @@ class SingleProducerSingleConsumerQueue<T> implements IProducerConsumerQueue<T> 
         }
     }
 
-    private class Segment<T1>
+    private class Segment
     {
         Segment next;
-        final T1[] array;
+        final Object[] array;
 
         SegmentState state = new SegmentState();
 
         Segment(int size)
         {
-            array = (T1[])(new Object[size]);
+            array = new Object[size];
         }
     }
 

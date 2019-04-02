@@ -2,6 +2,7 @@ package com.github.randyklex.dataflow;
 
 import java.util.AbstractMap;
 import java.util.EnumSet;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
 public class TargetCore<TInput> {
@@ -211,9 +212,22 @@ public class TargetCore<TInput> {
         }
     }
 
+    // TODO: reevaluate the need for 'repeat' here in light of how it's used in the .NET version.
     private void processAsyncIfNecessarySlow(boolean repeat)
     {
+        boolean messagesAvailableOrPostponed = !messages.isEmpty() || (!decliningPermanently && boundingState != null && boundingState.countIsLessThanBound() && (boundingState.postponedMessages.size() > 0));
 
+        if (messagesAvailableOrPostponed && !getCanceledOrFaulted())
+        {
+            numberOfOutstandingOperations++;
+            if (getUsesAsyncCompletion())
+                numberOfOutstandingServiceTasks++;
+
+            Executors.newCachedThreadPool().submit(() -> {
+                processMessagesLoopCore();
+            });
+            // TODO: Left off the FEATURE_TRACING
+        }
     }
 
     private void processMessagesLoopCore()
@@ -229,40 +243,120 @@ public class TargetCore<TInput> {
             int numberOfMessagesProcessedSinceTheLastKeepAlive = 0;
             int maxMessagesPerTask = dataflowBlockOptions.getActualMaxMessagesPerTask();
 
-            // TODO: implement the faulted or canceled.
+            // TODO: implement the faulted or canceled check in this while loop.
             while (numberOfMessagesProcessedByThisTask < maxMessagesPerTask)
             {
+                AbstractMap.SimpleEntry<TInput, Long> transferMessageWithId;
+                if (shouldAttemptPostponedTransfer)
+                {
+                    TryResult<AbstractMap.SimpleEntry<TInput, Long>> tryConsumeResult = tryConsumePostponedMessage(true);
+                    if (tryConsumeResult.isSuccess()) {
+                        transferMessageWithId = tryConsumeResult.getResult();
+                        synchronized (getIncomingLock()) {
+                            // TODO: should we put the assert back in here?
+                            boundingState.outstandingTransfers--;
+                            messages.add(transferMessageWithId);
+                            ProcessAsyncIfNecessary();
+                        }
+                    }
+                }
 
+                if (getUsesAsyncCompletion())
+                {
+                    // TODO: implement this code.
+                    break;
+                }
+                else
+                {
+                    TryResult<AbstractMap.SimpleEntry<TInput, Long>> tryResult = tryGetNextAvailableOrPostponedMessage();
+                    if (!tryResult.isSuccess())
+                        break;
+                    else
+                    {
+                        messageWithId = tryResult.getResult();
+                        // Try to keep the task alive only if Max DOP is 1.
+                        if (dataflowBlockOptions.getMaxDegreeOfParallelism() != 1)
+                            break;
+
+                        if (numberOfMessagesProcessedSinceTheLastKeepAlive > Common.KEEP_ALIVE_NUMBER_OF_MESSAGES_THRESHOLD)
+                            break;
+
+                        if (keepAliveBanCounter > 0) {
+                            keepAliveBanCounter--;
+                            break;
+                        }
+
+                        numberOfMessagesProcessedSinceTheLastKeepAlive = 0;
+                    }
+                }
+
+                numberOfMessagesProcessedByThisTask++;
+                numberOfMessagesProcessedSinceTheLastKeepAlive++;
+
+                callAction.accept(messageWithId);
             }
 
         }
         catch (Exception e)
         {
+            System.out.println(e.toString());
+        }
+        finally
+        {
+            synchronized (getIncomingLock())
+            {
+                // We incremented numberOfOutstandingOperations before we launched this
+                // task. So we must decrement it before exiting. NOTE: Each async task
+                // additionally incremented it before starting and is responsible for
+                // decrementing it prior to exiting.
+                numberOfOutstandingOperations--;
 
+                if (getUsesAsyncCompletion())
+                {
+                    assert numberOfOutstandingServiceTasks > 0;
+                    numberOfOutstandingServiceTasks--;
+                }
+
+                // However, we may have given up early because we hit our own configured
+                // processing limits rather than because we ran out of work to do. If that's
+                // the case, make sure we spin up another task to keep going.
+                ProcessAsyncIfNecessary(true);
+
+                // If however we stopped because we ran out of work to do and we
+                // know we'll never get more, then complete.
+                completeBlockIfPossible();
+            }
         }
     }
 
+    // TODO: implement tryGetNextMessageForNewAsyncOperation.
+
     private TryResult<AbstractMap.SimpleEntry<TInput, Long>> tryGetNextAvailableOrPostponedMessage()
     {
+        // First, try to get a message from our input buffer.
         TryResult<AbstractMap.SimpleEntry<TInput, Long>> result = messages.tryPoll();
         if (result.isSuccess())
             return result;
-        else
+        else if (boundingState != null)
         {
+            // if we can't, but if we have postponed messages due to bounding,
+            // then try to consume one of these postponed messages. Since we are
+            // not currently holding the lock, it is possible that the new
+            // messages get queued up by the time we take the lock to manipulate
+            // boundingState. So we have to double-check the input queue once we
+            // take the lock before we consider postponed messages.
             result = tryConsumePostponedMessage(false);
             if (result.isSuccess())
                 return result;
-            else
-            {
-                return new TryResult<>(false, null);
-            }
         }
+
+        return new TryResult<>(false, null);
     }
 
     private TryResult<AbstractMap.SimpleEntry<TInput, Long>> tryConsumePostponedMessage(boolean forPostponementTransfer)
     {
         boolean countIncrementedExpectingToGetItem = false;
-        long messageId = common.INVALID_REORDERING_ID;
+        long messageId = Common.INVALID_REORDERING_ID;
 
         while (true)
         {
@@ -272,10 +366,16 @@ public class TargetCore<TInput> {
                 if (decliningPermanently)
                     break;
 
+                // New messages may have been queued up while we weren't holding the lock.
+                // In particular, the input queue may have been filled up and messages may
+                // have gotten postponed. If we process such a postponed message, we would
+                // mess up the order. Therefore, we have to double-check the input queue first.
                 TryResult<AbstractMap.SimpleEntry<TInput, Long>> result = messages.tryPoll();
-                if (result.isSuccess() && !forPostponementTransfer)
+                if (!forPostponementTransfer && result.isSuccess())
                     return result;
 
+                // We can consume a message to process if there's one to process and also if
+                // we have logical room within our bound for the message.
                 TryResult<AbstractMap.SimpleEntry<ISourceBlock<TInput>, DataflowMessageHeader>> postponedResult = boundingState.postponedMessages.tryPoll();
                 element = postponedResult.getResult();
                 if (!boundingState.countIsLessThanBound() || !postponedResult.isSuccess())
@@ -298,7 +398,7 @@ public class TargetCore<TInput> {
                         boundingState.outstandingTransfers++;
                     }
                 }
-            } // Must not call to a source while holding lock.
+            }
 
             TryResult<TInput> consumedMessageStatus = element.getKey().consumeMessage(element.getValue(), owningTarget);
             if (consumedMessageStatus.isSuccess())
@@ -315,7 +415,7 @@ public class TargetCore<TInput> {
         // we optimistically acquired a message ID for a message that, in the end, we never got.
         // So we need to let the reordering buffer (if one exists) know that it should not
         // expect an item with this ID. Otherwise it would stall forever.
-        if (reorderingBuffer != null && messageId != common.INVALID_REORDERING_ID)
+        if (reorderingBuffer != null && messageId != Common.INVALID_REORDERING_ID)
             reorderingBuffer.ignoreItem(messageId);
 
         if (countIncrementedExpectingToGetItem)

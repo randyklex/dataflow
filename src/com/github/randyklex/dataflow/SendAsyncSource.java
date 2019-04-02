@@ -28,7 +28,7 @@ public class SendAsyncSource<TOutput> implements ISourceBlock<TOutput> {
         try {
             boolean consumeToAccept = cancellationState != CANCELLATION_STATE_NONE;
 
-            switch(target.offerMessage(common.SingleMessageHeader, messageValue, this, consumeToAccept))
+            switch(target.offerMessage(Common.SingleMessageHeader, messageValue, this, consumeToAccept))
             {
                 case Accepted:
                     if (!consumeToAccept)
@@ -61,7 +61,7 @@ public class SendAsyncSource<TOutput> implements ISourceBlock<TOutput> {
         if (target == null)
             throw new IllegalArgumentException("target cannot be null.");
 
-        boolean validMessage = messageHeader.getId() == common.SINGLE_MESSAGE_ID;
+        boolean validMessage = messageHeader.getId() == Common.SINGLE_MESSAGE_ID;
 
         if (validMessage)
         {

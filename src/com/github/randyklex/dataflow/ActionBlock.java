@@ -140,7 +140,7 @@ public class ActionBlock<TInput> implements ITargetBlock<TInput> {
     public boolean post(TInput item)
     {
         if (defaultTarget != null)
-            return defaultTarget.offerMessage(common.SingleMessageHeader, item, null, false) == DataflowMessageStatus.Accepted;
+            return defaultTarget.offerMessage(Common.SingleMessageHeader, item, null, false) == DataflowMessageStatus.Accepted;
         else
             return spscTarget.post(item);
     }

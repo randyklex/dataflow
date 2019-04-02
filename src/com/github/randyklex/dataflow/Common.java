@@ -1,6 +1,6 @@
 package com.github.randyklex.dataflow;
 
-class common {
+class Common {
 
     // An invalid ID to assign for reordering purposes. This value is chosen to be the last
     // of the 64-bit integers that could ever be assigned as a reordering ID.

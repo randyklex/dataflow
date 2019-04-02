@@ -76,7 +76,7 @@ final class SourceCore<TOutput> {
             {
                 targetRegistry.add(target, linkOptions);
                 offerToTargets(target);
-                return common.CreateUnlinker(getOutgoingLock(), targetRegistry, target);
+                return Common.CreateUnlinker(getOutgoingLock(), targetRegistry, target);
             }
         }
 
