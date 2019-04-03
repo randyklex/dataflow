@@ -28,7 +28,6 @@ public class TargetCore<TInput> {
     private boolean completionReserved;
     private int keepAliveBanCounter;
 
-    // TODO: implement the reordering buffer.
     TargetCore(ITargetBlock<TInput> owningTarget,
                Consumer<AbstractMap.SimpleEntry<TInput, Long>> callAction,
                IReorderingBuffer reorderingBuffer,
