@@ -1,5 +1,6 @@
 package com.github.randyklex.dataflow;
 
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -7,7 +8,8 @@ import org.junit.Test;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
+
 
 public class ActionBlockTest {
 
