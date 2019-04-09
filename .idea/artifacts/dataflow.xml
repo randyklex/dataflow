@@ -1,8 +1,0 @@
-<component name="ArtifactManager">
-  <artifact type="jar" name="dataflow">
-    <output-path>$PROJECT_DIR$/out/artifacts/dataflow</output-path>
-    <root id="archive" name="dataflow.jar">
-      <element id="module-output" name="dataflow" />
-    </root>
-  </artifact>
-</component>

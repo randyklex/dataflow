@@ -1,6 +1,5 @@
 package com.github.randyklex.dataflow;
 
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 
@@ -70,7 +69,7 @@ public final class FilteredLinkPropagator<T> extends TargetBlockBase<T> implemen
 
     public AutoCloseable linkTo(ITargetBlock<T> targetBlock, DataflowLinkOptions linkOptions, Predicate<T> predicate)
     {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     public void complete()
