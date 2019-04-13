@@ -1,10 +1,48 @@
 package com.github.randyklex.dataflow;
 
+import javax.xml.transform.Source;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.FutureTask;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class TransformBlock<TInput, TOutput> implements IPropagatorBlock<TInput, TOutput>, IReceivableSourceBlock<TOutput> {
+
+    private TargetCore<TInput> target;
+    private SourceCore<TOutput> source;
+    private ReorderingBuffer<TOutput> reorderingBuffer;
+
+//    public TransformBock(Function<TInput, TOutput> transform) {
+//    }
+
+    public TransformBlock(Function<TInput, TOutput> transformSync, Function<TInput, FutureTask<TOutput>> transformAsync, ExecutionDataflowBlockOptions dataflowBlockOptions) {
+        if (transformSync == null && transformAsync == null) throw new IllegalArgumentException("transform");
+        if (dataflowBlockOptions == null) throw new NullPointerException("dataflowBlockOptions");
+
+        if (transformAsync != null) {
+            throw new IllegalArgumentException("transformAsync not currently supported, must be null");
+        }
+
+        dataflowBlockOptions = dataflowBlockOptions.DefaultOrClone();
+
+        BiConsumer<ISourceBlock<TOutput>, Integer> onItemsRemoved = null;
+        if (dataflowBlockOptions.getBoundedCapacity() > 0)
+            onItemsRemoved = (owningSource, count) -> ((TransformBlock<TInput, TOutput>) owningSource).target.changeBoundingCount(-count);
+
+        source = new SourceCore<>(this, dataflowBlockOptions,
+                owningSource -> ((TransformBlock<TInput, TOutput>) owningSource).target.complete(null, true),
+                onItemsRemoved);
+
+        if (dataflowBlockOptions.getSupportsParallelExecution() && dataflowBlockOptions.getEnsureOrdered()) {
+            reorderingBuffer = new ReorderingBuffer<TOutput>(this,
+                    (owningSource, message) -> ((TransformBlock<TInput, TOutput>) owningSource).source.addMessage(message));
+        }
+
+
+    }
 
     @Override
     public TryResult<TOutput> TryReceive(Predicate<TOutput> filter) {

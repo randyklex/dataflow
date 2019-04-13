@@ -51,5 +51,8 @@ class Common {
         }
     }
 
-
+    static void contractAssertMonitorStatus(Object syncObj, boolean held) {
+        assert syncObj != null : "The locked object to check must be provided.";
+        assert Thread.holdsLock(syncObj) == held : "The locking schema was not correctly followed.";
+    }
 }

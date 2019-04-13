@@ -88,13 +88,14 @@ final class TargetRegistry<T> {
     /*
      * Clears the target registry entry points while allowing subsequent traversals of the linked list.
      */
-    LinkedTargetInfo ClearEntryPoints()
+    LinkedTargetInfo clearEntryPoints()
     {
         // save firstTarget so we can return to it.
         LinkedTargetInfo ft = firstTarget;
 
         firstTarget = lastTarget = null;
         targetInformation.clear();
+        assert linksWithRemainingMessages >= 0 : "linksWithRemainingMessages must be non-negative at any time.";
         linksWithRemainingMessages = 0;
 
         return ft;
