@@ -2,6 +2,7 @@ package com.github.randyklex.dataflow;
 
 import java.util.HashMap;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.function.Predicate;
 
 final class TargetRegistry<T> {
@@ -237,6 +238,22 @@ final class TargetRegistry<T> {
             this.Target = target;
             this.PropagateCompletion = linkOptions.getPropagateCompletion();
             this.RemainingMessages = linkOptions.getMaxNumberOfMessages();
+        }
+    }
+
+    /**
+     * Propagated completion to the targets of the given linked list.
+     * @param firstTarget The head of a saved linked list.
+     */
+    void propagateCompletion(LinkedTargetInfo firstTarget) {
+        assert owningSource.getCompletion().isDone() : "The owning source must have completed before propagating completion";
+
+        Future<?> owningSourceCompletion = owningSource.getCompletion();
+
+        for(LinkedTargetInfo node = firstTarget; node != null; node = node.Next) {
+
+            // TODO (si) : need to add the exception handler as the last argument in this call
+            if (node.PropagateCompletion) Common.propagateCompletion(owningSourceCompletion, node.Target, null);
         }
     }
 }

@@ -8,9 +8,7 @@ import java.util.function.Consumer;
 final class SourceCore<TOutput> {
     private final TargetRegistry<TOutput> targetRegistry;
 
-    // TODO: Implement the taskCompletionSource like in .NET. See also getOutgoingLock()
-    private final CompletableFuture<Void> completionTask = new CompletableFuture<>();
-
+    private final CompletableFuture<?> completionTask = new CompletableFuture<>();
 
     private final SingleProducerSingleConsumerQueue<TOutput> messages = new SingleProducerSingleConsumerQueue<>();
 
@@ -333,12 +331,16 @@ final class SourceCore<TOutput> {
         }
 
         if(exceptions != null) {
-            // TODO (si): need to figure out what to do with exceptions
+            // TODO (si): need to figure out what to do with exceptions. How do they work with java completionTasks?
         }
         // TODO (si): missing cancellation token stuff
         else {
-            completionTask.complete(Void);
+            completionTask.complete(null);
         }
+
+        targetRegistry.propagateCompletion(linkedTargets);
+
+        // TODO (si): Skipped all tracing stuff here
     }
 
 }

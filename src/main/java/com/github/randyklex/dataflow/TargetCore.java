@@ -2,7 +2,9 @@ package com.github.randyklex.dataflow;
 
 import java.util.AbstractMap;
 import java.util.EnumSet;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
 public class TargetCore<TInput> {
@@ -27,6 +29,9 @@ public class TargetCore<TInput> {
     private long nextAvailableInputMessageId;
     private boolean completionReserved;
     private int keepAliveBanCounter;
+
+    // A task representing the completion of the block
+    private final CompletableFuture<?> completionTask = new CompletableFuture<>();
 
     TargetCore(ITargetBlock<TInput> owningTarget,
                Consumer<AbstractMap.SimpleEntry<TInput, Long>> callAction,
@@ -421,6 +426,11 @@ public class TargetCore<TInput> {
             changeBoundingCount(-1);
 
         return new TryResult<>(false, null);
+    }
+
+    CompletableFuture<?> getCompletion() {
+        //
+        return completionTask;
     }
 
     /*

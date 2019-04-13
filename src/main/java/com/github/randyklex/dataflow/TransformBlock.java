@@ -1,7 +1,10 @@
 package com.github.randyklex.dataflow;
 
 import javax.xml.transform.Source;
+import java.util.AbstractMap;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.FutureTask;
 import java.util.function.BiConsumer;
@@ -11,8 +14,8 @@ import java.util.function.Predicate;
 
 public class TransformBlock<TInput, TOutput> implements IPropagatorBlock<TInput, TOutput>, IReceivableSourceBlock<TOutput> {
 
-    private TargetCore<TInput> target;
-    private SourceCore<TOutput> source;
+    private final TargetCore<TInput> target;
+    private final SourceCore<TOutput> source;
     private ReorderingBuffer<TOutput> reorderingBuffer;
 
 //    public TransformBock(Function<TInput, TOutput> transform) {
@@ -37,11 +40,53 @@ public class TransformBlock<TInput, TOutput> implements IPropagatorBlock<TInput,
                 onItemsRemoved);
 
         if (dataflowBlockOptions.getSupportsParallelExecution() && dataflowBlockOptions.getEnsureOrdered()) {
-            reorderingBuffer = new ReorderingBuffer<TOutput>(this,
+            reorderingBuffer = new ReorderingBuffer<>(this,
                     (owningSource, message) -> ((TransformBlock<TInput, TOutput>) owningSource).source.addMessage(message));
         }
 
+        // TODO (si) : add async support to this constructor
+        //if(transformSync != null) {
+        target = new TargetCore<>(this,
+                messageWithId -> processMessage(transformSync, messageWithId),
+                reorderingBuffer, dataflowBlockOptions, EnumSet.of(TargetCore.TargetCoreOptions.NONE));
+//        } else {
+//        }
 
+        // Link up the target half with the source half.
+        //target.
+        target.getCompletion().
+
+    }
+
+    // TODO (si): what to use for "KeyValuePair" - second argument
+    private void processMessage(Function<TInput, TOutput> transform, Map.Entry<TInput, Long> messageWithId) {
+        TOutput outputItem = null;
+        boolean itemIsValid = false;
+
+        try {
+            outputItem = transform.apply(messageWithId.getKey());
+            itemIsValid = true;
+        } catch (Exception exc) {
+            // TODO (si) : what is exception is cancellation?
+        } finally {
+            if (!itemIsValid) {
+                target.changeBoundingCount(-1);
+            }
+
+            if (reorderingBuffer == null) {
+                if (itemIsValid) {
+                    if (target.getDataflowBlockOptions().getMaxDegreeOfParallelism() == 1) {
+                        source.addMessage(outputItem);
+                    } else {
+                        synchronized (source) {
+                            source.addMessage(outputItem);
+                        }
+                    }
+                }
+            } else {
+                reorderingBuffer.addItem(messageWithId.getValue(), outputItem, itemIsValid);
+            }
+        }
     }
 
     @Override
