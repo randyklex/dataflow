@@ -54,7 +54,17 @@ public class TransformBlock<TInput, TOutput> implements IPropagatorBlock<TInput,
 
         // Link up the target half with the source half.
         //target.
-        target.getCompletion().
+        // TODO (si) : verify that .net's 'ContinueWith' is equivalent to java's 'thenRunAsync'
+        // TODO (si) : Should specify an executor the async continuation to execute on?
+        target.getCompletion().thenRunAsync(() -> {
+            //TODO (si) : do something with exceptions
+            source.complete();
+        });
+
+        source.getCompletion().thenRunAsync(() -> {
+            // TODO (si): some sort of "fault" logic belongs here. Don't yet understand enough about exceptions in futures
+        });
+
 
     }
 

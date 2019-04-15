@@ -84,4 +84,8 @@ class Common {
         }
 
     }
+
+    static void wireCancellationToComplete() {
+        // TODO (si): don't understand enough about cancellation yet
+    }
 }

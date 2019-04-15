@@ -49,6 +49,10 @@ final class SourceCore<TOutput> {
         return completionTask;
     }
 
+    CompletableFuture<?> getCompletion() {
+        return completionTask;
+    }
+
     private Object getValueLock() {
         return targetRegistry;
     }
@@ -279,6 +283,20 @@ final class SourceCore<TOutput> {
     private boolean getCanceledOrFaulted() {
         // TODO (si): what is a CancellationToken and what is its purpose?
         return false;
+    }
+
+    void complete() {
+        synchronized(getValueLock()) {
+            decliningPermanently = true;
+
+            CompletableFuture.runAsync(() -> {
+                synchronized(getOutgoingLock()) {
+                    synchronized(getValueLock()) {
+                        completeBlockIfPossible();
+                    }
+                }
+            });
+        }
     }
 
     private void completeBlockIfPossible() {
