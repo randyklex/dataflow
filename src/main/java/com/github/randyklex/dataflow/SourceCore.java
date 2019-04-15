@@ -286,12 +286,12 @@ final class SourceCore<TOutput> {
     }
 
     void complete() {
-        synchronized(getValueLock()) {
+        synchronized (getValueLock()) {
             decliningPermanently = true;
 
             CompletableFuture.runAsync(() -> {
-                synchronized(getOutgoingLock()) {
-                    synchronized(getValueLock()) {
+                synchronized (getOutgoingLock()) {
+                    synchronized (getValueLock()) {
                         completeBlockIfPossible();
                     }
                 }
@@ -337,7 +337,7 @@ final class SourceCore<TOutput> {
         synchronized (getOutgoingLock()) {
             linkedTargets = targetRegistry.clearEntryPoints();
 
-            synchronized(getValueLock()) {
+            synchronized (getValueLock()) {
                 messages.clear();
 
                 // Save a local reference to the exceptions list and null out the field,
@@ -348,7 +348,7 @@ final class SourceCore<TOutput> {
             }
         }
 
-        if(exceptions != null) {
+        if (exceptions != null) {
             // TODO (si): need to figure out what to do with exceptions. How do they work with java completionTasks?
         }
         // TODO (si): missing cancellation token stuff
@@ -359,6 +359,14 @@ final class SourceCore<TOutput> {
         targetRegistry.propagateCompletion(linkedTargets);
 
         // TODO (si): Skipped all tracing stuff here
+    }
+
+    int getOutputSize() {
+        synchronized (getOutgoingLock()) {
+            synchronized (getValueLock()) {
+                return messages.size();
+            }
+        }
     }
 
 }

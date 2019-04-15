@@ -18,8 +18,16 @@ public class TransformBlock<TInput, TOutput> implements IPropagatorBlock<TInput,
     private final SourceCore<TOutput> source;
     private ReorderingBuffer<TOutput> reorderingBuffer;
 
-//    public TransformBock(Function<TInput, TOutput> transform) {
-//    }
+
+    // TODO (si) : Add the asynchronous ctors
+
+    public TransformBlock(Function<TInput, TOutput> transform) {
+        this(transform, ExecutionDataflowBlockOptions.Default);
+    }
+
+    public TransformBlock(Function<TInput, TOutput> transform, ExecutionDataflowBlockOptions dataflowBlockOptions) {
+        this(transform, null, dataflowBlockOptions);
+    }
 
     public TransformBlock(Function<TInput, TOutput> transformSync, Function<TInput, FutureTask<TOutput>> transformAsync, ExecutionDataflowBlockOptions dataflowBlockOptions) {
         if (transformSync == null && transformAsync == null) throw new IllegalArgumentException("transform");
@@ -146,21 +154,29 @@ public class TransformBlock<TInput, TOutput> implements IPropagatorBlock<TInput,
 
     @Override
     public DataflowMessageStatus offerMessage(DataflowMessageHeader messageHeader, TInput messageValue, ISourceBlock<TInput> source, boolean consumeToAccept) {
-        return null;
+        return target.offerMessage(messageHeader, messageValue, source, consumeToAccept);
     }
 
     @Override
     public CompletableFuture<?> getCompletion() {
-        return null;
+        return source.getCompletion();
     }
 
     @Override
     public void complete() {
-
+        target.complete(null, false);
     }
 
     @Override
     public void fault(Exception exception) {
 
+    }
+
+    public int getInputSize() {
+        return target.getInputSize();
+    }
+
+    public int getOutputSize() {
+        return source.getOutputSize();
     }
 }
