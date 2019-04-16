@@ -84,6 +84,10 @@ final class SourceCore<TOutput> {
         this.targetRegistry = new TargetRegistry<TOutput>(owningSource);
     }
 
+    AutoCloseable LinkTo(ITargetBlock<TOutput> target) {
+        return LinkTo(target, DataflowLinkOptions.Default);
+    }
+
     AutoCloseable LinkTo(ITargetBlock<TOutput> target, DataflowLinkOptions linkOptions) {
         if (target == null)
             throw new IllegalArgumentException("target cannot be null");
@@ -365,6 +369,19 @@ final class SourceCore<TOutput> {
         synchronized (getOutgoingLock()) {
             synchronized (getValueLock()) {
                 return messages.size();
+            }
+        }
+    }
+
+    void addExceptions(List<Exception> exceptions) {
+        assert exceptions != null : "Valid exceptions must be provided to be added";
+
+        // TODO (si) : is this *actually* the equivalent? UGH EXCEPTIONS
+        assert !getCompletion().isDone() || getCompletion().isCompletedExceptionally() : "The block must either not be completed or be completed exceptionally.";
+
+        synchronized (getValueLock()) {
+            for(Exception exc : exceptions) {
+                // TODO (si) : do stuff with exceptions
             }
         }
     }

@@ -64,10 +64,8 @@ public class TransformBlock<TInput, TOutput> implements IPropagatorBlock<TInput,
         //target.
         // TODO (si) : verify that .net's 'ContinueWith' is equivalent to java's 'thenRunAsync'
         // TODO (si) : Should specify an executor the async continuation to execute on?
-        target.getCompletion().thenRunAsync(() -> {
-            //TODO (si) : do something with exceptions
-            source.complete();
-        });
+        //TODO (si) : do something with exceptions
+        target.getCompletion().thenRunAsync(source::complete);
 
         source.getCompletion().thenRunAsync(() -> {
             // TODO (si): some sort of "fault" logic belongs here. Don't yet understand enough about exceptions in futures
@@ -118,22 +116,7 @@ public class TransformBlock<TInput, TOutput> implements IPropagatorBlock<TInput,
     }
 
     @Override
-    public AutoCloseable linkTo(ITargetBlock<TOutput> target) {
-        return null;
-    }
-
-    @Override
     public AutoCloseable linkTo(ITargetBlock<TOutput> target, DataflowLinkOptions linkOptions) {
-        return null;
-    }
-
-    @Override
-    public AutoCloseable linkTo(ITargetBlock<TOutput> target, Predicate<TOutput> predicate) {
-        return null;
-    }
-
-    @Override
-    public AutoCloseable linkTo(ITargetBlock<TOutput> target, DataflowLinkOptions linkOptions, Predicate<TOutput> predicate) {
         return null;
     }
 
