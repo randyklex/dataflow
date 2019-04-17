@@ -143,7 +143,7 @@ public class TargetCore<TInput> {
 
                 long messageId = nextAvailableInputMessageId++;
 
-                if (boundingState != null) boundingState.CurrentCount += 1;
+                if (boundingState != null) boundingState.currentCount += 1;
 
                 messages.add(new AbstractMap.SimpleEntry<>(messageValue, messageId));
                 ProcessAsyncIfNecessary();
@@ -389,7 +389,7 @@ public class TargetCore<TInput> {
                     if (countIncrementedExpectingToGetItem)
                     {
                         countIncrementedExpectingToGetItem = false;
-                        boundingState.CurrentCount -= 1;
+                        boundingState.currentCount -= 1;
                     }
                     break;
                 }
@@ -398,7 +398,7 @@ public class TargetCore<TInput> {
                 {
                     countIncrementedExpectingToGetItem = true;
                     messageId = nextAvailableInputMessageId++;
-                    boundingState.CurrentCount += 1;
+                    boundingState.currentCount += 1;
                     if (forPostponementTransfer)
                     {
                         boundingState.outstandingTransfers++;
@@ -495,7 +495,7 @@ public class TargetCore<TInput> {
         {
             synchronized (getIncomingLock())
             {
-                boundingState.CurrentCount += count;
+                boundingState.currentCount += count;
                 processAsyncIfNecessary();
                 completeBlockIfPossible();
             }

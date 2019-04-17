@@ -1,12 +1,9 @@
 package com.github.randyklex.dataflow;
 
-import java.nio.Buffer;
 import java.util.AbstractMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
@@ -44,6 +41,8 @@ public class BufferBlock<T> implements IPropagatorBlock<T, T>, IReceivableSource
         if (dataflowBlockOptions.getBoundedCapacity() > 0) {
             onItemsRemoved = (owningSource, count) -> ((BufferBlock<T>) owningSource).onItemsRemoved(count);
             boundingState = new BoundingStateWithPostponedAndTask<>(dataflowBlockOptions.getBoundedCapacity());
+        } else {
+            boundingState = null;
         }
 
         source = new SourceCore<>(this, dataflowBlockOptions,
@@ -57,6 +56,8 @@ public class BufferBlock<T> implements IPropagatorBlock<T, T>, IReceivableSource
 
         // TODO (si)
         //Common.wireCancellationToComplete();
+
+        // TODO (si) : skipped the tracing stuff
     }
 
 
@@ -232,32 +233,33 @@ public class BufferBlock<T> implements IPropagatorBlock<T, T>, IReceivableSource
 
     @Override
     public AutoCloseable linkTo(ITargetBlock<T> target, DataflowLinkOptions linkOptions) {
-        return source.LinkTo(target, linkOptions);
+        return source.linkTo(target, linkOptions);
     }
 
     @Override
     public TryResult<T> consumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<T> target) {
-        return null;
+        return source.consumeMessage(messageHeader, target);
     }
 
     @Override
     public boolean reserveMessage(DataflowMessageHeader messageHeader, ITargetBlock<T> target) {
-        return false;
+        return source.reserveMessage(messageHeader, target);
     }
 
     @Override
     public void releaseReservation(DataflowMessageHeader messageHeader, ITargetBlock<T> target) {
-
+        source.releaseReservation(messageHeader, target);
     }
 
     @Override
     public DataflowMessageStatus offerMessage(DataflowMessageHeader messageHeader, T messageValue, ISourceBlock<T> source, boolean consumeToAccept) {
+        //return nullit.
         return null;
     }
 
     @Override
     public CompletableFuture<?> getCompletion() {
-        return null;
+        return source.getCompletion();
     }
 
     @Override

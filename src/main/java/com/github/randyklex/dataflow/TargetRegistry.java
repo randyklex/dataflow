@@ -40,12 +40,12 @@ final class TargetRegistry<T> {
         return targetInformation.containsKey(target);
     }
 
-    void Remove(ITargetBlock<T> target)
+    void remove(ITargetBlock<T> target)
     {
-        Remove(target, false);
+        remove(target, false);
     }
 
-    void Remove(ITargetBlock<T> target, boolean onlyIfReachedMaxMessages)
+    void remove(ITargetBlock<T> target, boolean onlyIfReachedMaxMessages)
     {
         if (target == null)
             // TODO: convert this to a debug assert

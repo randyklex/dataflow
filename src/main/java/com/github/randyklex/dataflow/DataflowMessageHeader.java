@@ -17,6 +17,10 @@ public class DataflowMessageHeader {
         this.id = id;
     }
 
+    public static DataflowMessageHeader getDefault() {
+        return new DataflowMessageHeader(DEFAULT_VALUE);
+    }
+
     /* Gets the validity of the message.
     *
     * @return true if the ID of the message is different from 0. False if the ID of the message is 0.

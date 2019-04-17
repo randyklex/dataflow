@@ -84,16 +84,15 @@ final class SourceCore<TOutput> {
         this.targetRegistry = new TargetRegistry<TOutput>(owningSource);
     }
 
-    AutoCloseable LinkTo(ITargetBlock<TOutput> target) {
-        return LinkTo(target, DataflowLinkOptions.Default);
+    AutoCloseable linkTo(ITargetBlock<TOutput> target) {
+        return linkTo(target, DataflowLinkOptions.Default);
     }
 
-    AutoCloseable LinkTo(ITargetBlock<TOutput> target, DataflowLinkOptions linkOptions) {
+    AutoCloseable linkTo(ITargetBlock<TOutput> target, DataflowLinkOptions linkOptions) {
         if (target == null)
-            throw new IllegalArgumentException("target cannot be null");
-
+            throw new NullPointerException("target cannot be null");
         if (linkOptions == null)
-            throw new IllegalArgumentException("linkOptions cannot be null.");
+            throw new NullPointerException("linkOptions cannot be null.");
 
         // TODO: do the async stuff with Task/CompletableFuture
 
@@ -168,14 +167,100 @@ final class SourceCore<TOutput> {
         return messageWasAccepted;
     }
 
+    TryResult<TOutput> consumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<TOutput> target) {
+        if (messageHeader == null)
+            throw new NullPointerException("messageHeader");
+        if (!messageHeader.isValid())
+            throw new IllegalArgumentException("messageHeader");
+        if (target == null)
+            throw new NullPointerException("target");
+
+        TOutput consumedMessageValue;
+        synchronized (getOutgoingLock()) {
+            if (nextMessageReservedFor != target && nextMessageReservedFor != null) {
+                return new TryResult<>(false, null);
+            }
+
+            synchronized (getValueLock()) {
+                TryResult<TOutput> result = messages.tryPoll();
+                if (messageHeader.getId() != nextMessageId || !result.isSuccess()) {
+                    return new TryResult<>(false, null);
+                }
+
+                consumedMessageValue = result.getResult();
+                nextMessageReservedFor = null;
+                targetRegistry.remove(target, true);
+                enableOffering = true;
+                nextMessageId++;
+                completeBlockIfPossible();
+                offerAsyncIfNecessary(false, true);
+            }
+        }
+
+        if (itemsRemovedAction != null) {
+            int count = itemCountFunction != null ? itemCountFunction.apply(owningSource, consumedMessageValue, null) : 1;
+            itemsRemovedAction.accept(owningSource, count);
+        }
+
+        return new TryResult<>(true, consumedMessageValue);
+    }
+
+    boolean reserveMessage(DataflowMessageHeader messageHeader, ITargetBlock<TOutput> target) {
+        if (messageHeader == null)
+            throw new NullPointerException("messageHeader");
+        if (!messageHeader.isValid())
+            throw new IllegalArgumentException("messageHeader");
+        if (target == null)
+            throw new NullPointerException("target");
+
+        synchronized (getOutgoingLock()) {
+            if (nextMessageReservedFor == null) {
+                synchronized (getValueLock()) {
+                    if (messageHeader.getId() == nextMessageId && !messages.isEmpty()) {
+                        nextMessageReservedFor = target;
+                        enableOffering = false;
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    void releaseReservation(DataflowMessageHeader messageHeader, ITargetBlock<TOutput> target) {
+        if (messageHeader == null)
+            throw new NullPointerException("messageHeader");
+        if (!messageHeader.isValid())
+            throw new IllegalArgumentException("messageHeader");
+        if (target == null)
+            throw new NullPointerException("target");
+
+        synchronized (getOutgoingLock()) {
+            if (nextMessageReservedFor != target)
+                throw new IllegalStateException("Message not reserved by target");
+
+            synchronized (getValueLock()) {
+                if (messageHeader.getId() != nextMessageId || messages.isEmpty())
+                    throw new IllegalStateException("Message not reserved by target");
+
+                nextMessageReservedFor = null;
+                assert !enableOffering : "Offering should have been disabled if there was a valid reservation";
+                enableOffering = true;
+
+                offerAsyncIfNecessary(false, true);
+                completeBlockIfPossible();
+            }
+        }
+    }
+
     private TryResult<Boolean> offerMessageToTarget(DataflowMessageHeader header, TOutput message, ITargetBlock<TOutput> target) {
         DataflowMessageStatus offerResult = target.offerMessage(header, message, owningSource, false);
 
         if (offerResult == DataflowMessageStatus.Accepted) {
-            targetRegistry.Remove(target, true);
+            targetRegistry.remove(target, true);
             return new TryResult<>(true, true);
         } else if (offerResult == DataflowMessageStatus.DecliningPermanently) {
-            targetRegistry.Remove(target);
+            targetRegistry.remove(target);
         } else if (nextMessageReservedFor != null) {
             // message should not be offered to anyone else.
             return new TryResult<>(true, false);
@@ -380,7 +465,7 @@ final class SourceCore<TOutput> {
         assert !getCompletion().isDone() || getCompletion().isCompletedExceptionally() : "The block must either not be completed or be completed exceptionally.";
 
         synchronized (getValueLock()) {
-            for(Exception exc : exceptions) {
+            for (Exception exc : exceptions) {
                 // TODO (si) : do stuff with exceptions
             }
         }

@@ -1,8 +1,5 @@
 package com.github.randyklex.dataflow;
 
-import com.google.inject.internal.util.AbstractMapEntry;
-
-import java.lang.reflect.Array;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
@@ -50,7 +47,7 @@ class Common {
         @Override
         public void close() {
             synchronized (syncObj) {
-                registry.Remove(target);
+                registry.remove(target);
             }
         }
     }
